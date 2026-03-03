@@ -15,13 +15,13 @@ const MAIL_URL = process.env.MAIL_URL;
 
 export const lockSeatRequest = async (req, res) => {
   try {
-
-    const { showId, seatIds,userId } = req.body
+    const { showId, seatIds, userId } = req.body
 
     if (!showId || !seatIds || !userId) {
       return res.status(400).json({ message: "Missing fields" })
     }
 
+    console.log("lockSeatRequest received", { showId, seatIdsCount: seatIds.length, userId })
     await bookingQueue.add("lockSeat", {
       showId,
       seatIds,
@@ -33,7 +33,8 @@ export const lockSeatRequest = async (req, res) => {
     })
 
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error("lockSeatRequest error", err)
+    res.status(500).json({ error: err.message || err })
   }
 }
 
