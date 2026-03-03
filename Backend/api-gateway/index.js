@@ -11,7 +11,7 @@ import mailProxy from "./routes/mailProxy.js"
 const app = express()
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "https://sync-seat-seven.vercel.app",
   credentials: true
 }))
 
