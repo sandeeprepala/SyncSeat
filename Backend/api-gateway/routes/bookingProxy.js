@@ -3,7 +3,7 @@ import axios from "axios"
 import { verifyToken } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
-const BOOKING = "http://localhost:5000"
+const BOOKING = "https://syncseat-booking.onrender.com"
 
 router.use("/booking", verifyToken, async (req, res) => {
   try {

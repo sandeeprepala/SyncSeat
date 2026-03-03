@@ -3,7 +3,7 @@ import axios from "axios"
 import { verifyToken } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
-const MAIL = "http://localhost:5003"
+const MAIL = "https://syncseat-mail.onrender.com"
 
 router.use("/mail", verifyToken, async (req, res) => {
   try {

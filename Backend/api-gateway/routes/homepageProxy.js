@@ -2,7 +2,7 @@ import express from "express"
 import axios from "axios"
 
 const router = express.Router()
-const HOMEPAGE = "http://localhost:3000"
+const HOMEPAGE = "https://syncseat-homepage.onrender.com"
 
 router.use("/homepage", async (req, res) => {
   try {
