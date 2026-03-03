@@ -21,6 +21,11 @@ app.get("/", (req, res) => {
   res.send("Welcome to the Homepage Service!")
 })
 
+// simple health check for monitoring/keep-alive
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" })
+})
+
 const PORT = process.env.PORT || 4001
 
 app.listen(PORT, () => {

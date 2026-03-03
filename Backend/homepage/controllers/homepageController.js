@@ -33,9 +33,17 @@ export const addMovie = async (req, res) => {
 }
 
 export const getMovies = async (req, res) => {
-  const { data, error } = await supabase.from("movies").select("*")
-  if (error) return res.status(400).json(error)
-  res.json(data)
+  try {
+    const { data, error } = await supabase.from("movies").select("*")
+    if (error) {
+      console.error('getMovies supabase error', error)
+      return res.status(400).json(error)
+    }
+    res.json(data)
+  } catch (err) {
+    console.error('getMovies unexpected error', err)
+    res.status(500).json({ message: "Server error", err })
+  }
 }
 
 /* ---------------- THEATRES ---------------- */
