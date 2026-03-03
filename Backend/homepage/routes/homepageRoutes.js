@@ -22,6 +22,7 @@ router.post("/theatres", addTheatre)
 router.get("/theatres", getTheatres)
 
 router.post("/screens", addScreen)
+router.get("/screens", getScreens)
 router.get("/screens/:theatreId", getScreens)
 
 router.post("/shows", addShow)

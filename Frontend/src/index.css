@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* Custom theme and animations for Tailwind v4 */
+@theme {
+  --animate-float: float 8s ease-in-out infinite;
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+}
+
+@layer utilities {
+  .animation-delay-200 { animation-delay: 200ms; }
+  .animation-delay-300 { animation-delay: 300ms; }
+  .animation-delay-500 { animation-delay: 500ms; }
+  .animation-delay-1000 { animation-delay: 1000ms; }
+}
+
+html {
+  scroll-behavior: smooth;
+}

@@ -1,7 +1,11 @@
 import 'dotenv/config'
 import { supabase } from "../config/supabaseClient.js"
+import startKeepAlive from "../../utils/keepAlive.js"
 
 console.log("Lock cleanup worker started...")
+
+// keep the process active by pinging the app URL periodically
+startKeepAlive()
 
 setInterval(async () => {
   try {

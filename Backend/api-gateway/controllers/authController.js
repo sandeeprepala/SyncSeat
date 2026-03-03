@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs"
 import { v4 as uuid } from "uuid"
 import { supabase } from "../config/supabaseClient.js"
-import { generateToken } from "../config/jwt.js"
+import { generateToken, verifyToken } from "../config/jwt.js"
 
 export const signup = async (req, res) => {
   const { email, password, city } = req.body
@@ -62,4 +62,33 @@ res.json({ message: "Login successful" })
 export const logout = (req, res) => {
   res.clearCookie("token")
   res.json({ message: "Logged out" })
+}
+
+export const getMe = async (req, res) => {
+  try {
+    const token = req.cookies.token
+
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized" })
+    }
+
+    // verify token
+    const decoded = verifyToken(token)
+
+    // fetch fresh user from DB
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, email, city")
+      .eq("id", decoded.id)
+      .single()
+
+    if (error || !data) {
+      return res.status(401).json({ message: "User not found" })
+    }
+
+    res.json({ user: data })
+
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" })
+  }
 }

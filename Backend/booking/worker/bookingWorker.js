@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { Worker } from "bullmq"
 import Redis from "ioredis"
 import { supabase } from "../config/supabaseClient.js"
+import startKeepAlive from "../../utils/keepAlive.js"
 
 // Shared Redis connection
 const connection = new Redis(process.env.UPSTASH_REDIS_URL, {
@@ -30,6 +31,9 @@ const lockRedis = new Redis(process.env.UPSTASH_REDIS_URL, {
 })
 
 console.log("Booking worker started...")
+
+// Start keep-alive pings to prevent free hosts from idling (configure KEEP_ALIVE_URL)
+startKeepAlive()
 
 const worker = new Worker(
   "bookingQueue",

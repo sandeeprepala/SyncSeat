@@ -53,10 +53,25 @@ export const addTheatre = async (req, res) => {
 }
 
 export const getTheatres = async (req, res) => {
-  const { data, error } = await supabase.from("theatres").select("*")
-  if (error) return res.status(400).json(error)
-  res.json(data)
-}
+  try {
+    const { ids } = req.query;
+
+    let query = supabase.from("theatres").select("*");
+
+    if (ids) {
+      const idArray = ids.split(",");
+      query = query.in("id", idArray);
+    }
+
+    const { data, error } = await query;
+
+    if (error) return res.status(400).json(error);
+    res.json(data);
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+};
 
 /* ---------------- SCREENS ---------------- */
 
@@ -73,16 +88,28 @@ export const addScreen = async (req, res) => {
 }
 
 export const getScreens = async (req, res) => {
-  const { theatreId } = req.params
+  try {
+    const { theatreId } = req.params;
+    const { ids } = req.query;
 
-  const { data, error } = await supabase
-    .from("screens")
-    .select("*")
-    .eq("theatre_id", theatreId)
+    let query = supabase.from("screens").select("*");
 
-  if (error) return res.status(400).json(error)
-  res.json(data)
-}
+    if (ids) {
+      const idArray = ids.split(",");
+      query = query.in("id", idArray);
+    } else if (theatreId) {
+      query = query.eq("theatre_id", theatreId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) return res.status(400).json(error);
+    res.json(data);
+
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+};
 
 /* ---------------- SEATS (STATIC PER SCREEN) ---------------- */
 

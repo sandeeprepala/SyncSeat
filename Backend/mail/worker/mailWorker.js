@@ -8,6 +8,7 @@ import { Worker } from "bullmq"
 import Redis from "ioredis"
 import { createClient } from "@supabase/supabase-js"
 import { Agent } from "undici"
+import startKeepAlive from "../../utils/keepAlive.js"
 
 // 🔹 Load ENV from mail/.env
 const __filename = fileURLToPath(import.meta.url)
@@ -155,3 +156,6 @@ worker.on("error", err => {
 })
 
 console.log("Mail worker started 🚀")
+
+// keep the mail worker alive on free hosts (set KEEP_ALIVE_URL env)
+startKeepAlive()
