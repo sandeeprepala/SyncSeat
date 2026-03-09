@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabaseClient.js"
+import { serviceCache } from "../utils/cache.js"
 import { v4 as uuid } from "uuid"
 
 /* ---------------- MOVIES ---------------- */
@@ -25,6 +26,11 @@ export const addMovie = async (req, res) => {
       .select()
 
     if (error) return res.status(400).json(error)
+    
+    // Invalidate movies cache when new movie is added
+    serviceCache.delete('movies')
+    console.log('[CACHE] Movies cache invalidated after add')
+    
     res.json(data)
 
   } catch (err) {
@@ -34,11 +40,23 @@ export const addMovie = async (req, res) => {
 
 export const getMovies = async (req, res) => {
   try {
+    // Check cache first
+    const cachedMovies = serviceCache.get('movies')
+    if (cachedMovies) {
+      console.log('[CACHE HIT] Movies from cache')
+      return res.json(cachedMovies)
+    }
+
     const { data, error } = await supabase.from("movies").select("*")
     if (error) {
       console.error('getMovies supabase error', error)
       return res.status(400).json(error)
     }
+    
+    // Cache the movies for 5 minutes
+    serviceCache.set('movies', data, 300)
+    console.log('[CACHE] Movies cached for 5 minutes')
+    
     res.json(data)
   } catch (err) {
     console.error('getMovies unexpected error', err)
