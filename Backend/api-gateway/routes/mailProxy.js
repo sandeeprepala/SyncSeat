@@ -5,22 +5,87 @@ import { verifyToken } from "../middleware/authMiddleware.js"
 const router = express.Router()
 const MAIL = "https://syncseat-mail.onrender.com"
 
+// Retry logic with exponential backoff for mail operations
+async function fetchWithRetry(url, config, maxRetries = 3) {
+  let lastError
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await axios({
+        method: config.method,
+        url: url,
+        data: config.data,
+        timeout: 15000, // 15 second timeout for mail operations
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/json',
+          ...config.headers
+        }
+      })
+
+      // Check if response is HTML (Cloudflare challenge)
+      if (response.headers['content-type']?.includes('text/html')) {
+        throw new Error('Cloudflare protection detected. Service temporarily unavailable.')
+      }
+
+      return response
+    } catch (err) {
+      lastError = err
+
+      // If 429 (Too Many Requests) or 503 (Service Unavailable), retry with exponential backoff
+      if (err.response?.status === 429 || err.response?.status === 503) {
+        const delay = Math.min(2000 * Math.pow(2, attempt), 10000) // 2s, 4s, 8s max
+        console.warn(`[MAIL RETRY] ${err.response?.status} on attempt ${attempt + 1}, waiting ${delay}ms before retry...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+
+      // Don't retry other errors
+      throw err
+    }
+  }
+
+  throw lastError
+}
+
 router.use("/mail", verifyToken, async (req, res) => {
   try {
+    const fullUrl = `${MAIL}${req.originalUrl}`
 
-    const response = await axios({
+    const response = await fetchWithRetry(fullUrl, {
       method: req.method,
-      url: `${MAIL}${req.originalUrl}`,
       data: {
         ...req.body,
         userId: req.user.id
       }
     })
-    console.log("Mail service response:", response.data)
+
+    console.log(`[MAIL SUCCESS] ${req.method} ${req.originalUrl} - User: ${req.user.id}`)
     res.json(response.data)
 
   } catch (err) {
-    res.status(500).json(err.response?.data || err.message)
+    const statusCode = err.response?.status || 500
+    const errorData = err.response?.data || err.message
+
+    console.error(`[MAIL ERROR] ${req.method} ${req.originalUrl} - Status: ${statusCode}`, errorData)
+
+    // Handle Cloudflare protection specifically
+    if (errorData.includes('Cloudflare') || errorData.includes('Just a moment')) {
+      return res.status(503).json({
+        error: 'Mail service temporarily protected by security measures. Please try again in a few moments.',
+        message: 'Mail service is currently under protection. Please wait and retry.'
+      })
+    }
+
+    res.status(statusCode).json({
+      error: errorData,
+      message: statusCode === 429
+        ? 'Mail service is rate-limited. Please wait a moment and try again.'
+        : statusCode === 503
+        ? 'Mail service is temporarily unavailable. Please try again later.'
+        : 'Failed to process mail request'
+    })
   }
 })
 

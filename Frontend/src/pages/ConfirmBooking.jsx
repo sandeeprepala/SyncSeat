@@ -19,6 +19,7 @@ export default function ConfirmBooking() {
   const [timeLeft, setTimeLeft] = useState(COUNTDOWN_SECONDS);
   const [lockStatus, setLockStatus] = useState(null); // null | "checking" | "locked" | "available"
   const [booking, setBooking] = useState("idle"); // "idle" | "loading" | "success" | "error"
+  const [bookingError, setBookingError] = useState(null); // Store booking error details
   const timerRef = useRef(null);
 
   // ── Check lock on mount ──
@@ -61,6 +62,22 @@ export default function ConfirmBooking() {
       }
     } catch (err) {
       console.error("Lock check failed:", err);
+      const errorMessage = err.response?.data?.message || err.message;
+
+      // Handle specific error cases
+      if (errorMessage?.includes('protected by security measures') ||
+          errorMessage?.includes('temporarily unavailable')) {
+        // Service is under Cloudflare protection, retry after delay
+        setTimeout(() => checkLock(), 3000);
+        return;
+      }
+
+      if (errorMessage?.includes('rate-limited')) {
+        // Rate limited, retry after longer delay
+        setTimeout(() => checkLock(), 5000);
+        return;
+      }
+
       setLockStatus("locked");
       setTimeout(() => navigate(-1), 2000);
     }
@@ -68,6 +85,7 @@ export default function ConfirmBooking() {
 
   const confirmBooking = async () => {
     setBooking("loading");
+    setBookingError(null);
     try {
       await API.post("/booking/confirm", { showId, seatIds });
       clearInterval(timerRef.current);
@@ -75,6 +93,25 @@ export default function ConfirmBooking() {
       setTimeout(() => navigate("/"), 3000);
     } catch (err) {
       console.error("Booking failed:", err);
+      const errorMessage = err.response?.data?.message || err.message;
+      setBookingError(err.response?.data || { message: err.message });
+
+      // Handle specific booking errors
+      if (errorMessage?.includes('protected by security measures') ||
+          errorMessage?.includes('temporarily unavailable')) {
+        // Service is under Cloudflare protection, show retry option
+        setBooking("error");
+        setTimeout(() => setBooking("idle"), 5000); // Allow retry after 5 seconds
+        return;
+      }
+
+      if (errorMessage?.includes('rate-limited')) {
+        // Rate limited, show retry option
+        setBooking("error");
+        setTimeout(() => setBooking("idle"), 3000); // Allow retry after 3 seconds
+        return;
+      }
+
       setBooking("error");
     }
   };
@@ -221,7 +258,21 @@ export default function ConfirmBooking() {
 
           {/* Confirm button */}
           {booking === "error" && (
-            <p className="cb-error-msg">Something went wrong. Please try again.</p>
+            <p className="cb-error-msg">
+              {(() => {
+                const errorMessage = bookingError?.message || "Something went wrong.";
+                if (errorMessage.includes('protected by security measures')) {
+                  return "Service is temporarily under security protection. Retrying automatically...";
+                }
+                if (errorMessage.includes('rate-limited')) {
+                  return "Service is busy. Retrying in a moment...";
+                }
+                if (errorMessage.includes('temporarily unavailable')) {
+                  return "Service is temporarily unavailable. Please try again.";
+                }
+                return errorMessage;
+              })()}
+            </p>
           )}
 
           <button
@@ -231,6 +282,18 @@ export default function ConfirmBooking() {
           >
             {booking === "loading" ? (
               <span className="cb-btn-spinner" />
+            ) : booking === "error" && (bookingError?.message?.includes('protected by security measures') ||
+                                         bookingError?.message?.includes('rate-limited') ||
+                                         bookingError?.message?.includes('temporarily unavailable')) ? (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
+                </svg>
+                Retry Booking
+              </>
             ) : (
               <>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
