@@ -2,6 +2,8 @@
 
 A concise overview of the backend architecture, how we handle concurrency with Redis locks and async queues, and a short note about the frontend's Context API usage.
 
+- Video Demo - https://drive.google.com/drive/folders/1zh07xgBkKu3HHmfuz-_KV2o4r5ObzFR4
+
 ---
 
 **Overview**
