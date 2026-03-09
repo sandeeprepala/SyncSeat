@@ -1,7 +1,8 @@
-// Simple in-memory cache with TTL for API Gateway
+// In-memory cache with TTL and request deduplication for API Gateway
 class Cache {
   constructor() {
     this.store = new Map()
+    this.inFlightRequests = new Map() // Track requests in-flight to deduplicate
   }
 
   set(key, value, ttlSeconds = 300) {
@@ -28,12 +29,27 @@ class Cache {
     return Date.now() > item.expiresAt
   }
 
+  // Track in-flight requests to deduplicate identical concurrent requests
+  getInFlight(key) {
+    return this.inFlightRequests.get(key)
+  }
+
+  setInFlight(key, promise) {
+    this.inFlightRequests.set(key, promise)
+  }
+
+  clearInFlight(key) {
+    this.inFlightRequests.delete(key)
+  }
+
   clear() {
     this.store.clear()
+    this.inFlightRequests.clear()
   }
 
   delete(key) {
     this.store.delete(key)
+    this.inFlightRequests.delete(key)
   }
 }
 

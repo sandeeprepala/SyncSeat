@@ -24,41 +24,83 @@ function getCacheTTL(url) {
 
 router.use("/homepage", async (req, res) => {
   try {
-    const fullUrl = `${HOMEPAGE}${req.originalUrl}`
     const cacheKey = `${req.method}:${req.originalUrl}`
 
     // Check cache for GET requests
     if (req.method === 'GET') {
       const cachedResponse = cache.get(cacheKey)
       if (cachedResponse) {
+        console.log(`[CACHE HIT] ${req.originalUrl}`)
         return res.json(cachedResponse)
+      }
+
+      // Deduplicate: if this request is already in-flight, wait for it
+      const inFlightPromise = cache.getInFlight(cacheKey)
+      if (inFlightPromise) {
+        console.log(`[DEDUP] Waiting for in-flight request: ${req.originalUrl}`)
+        try {
+          const data = await inFlightPromise
+          return res.json(data)
+        } catch (err) {
+          throw err
+        }
       }
     }
 
-    const response = await axios({
+    // Make the actual request
+    const fullUrl = `${HOMEPAGE}${req.originalUrl}`
+    const requestPromise = axios({
       method: req.method,
       url: fullUrl,
       data: req.body,
-      timeout: 10000 // 10 second timeout to prevent hanging
+      timeout: 15000 // 15 second timeout
     })
+
+    // Track in-flight GET requests for deduplication
+    if (req.method === 'GET') {
+      const dataPromise = requestPromise.then(response => response.data)
+      cache.setInFlight(cacheKey, dataPromise)
+    }
+
+    const response = await requestPromise
 
     // Cache successful GET responses
     if (req.method === 'GET' && response.status === 200) {
       const ttl = getCacheTTL(req.originalUrl)
       cache.set(cacheKey, response.data, ttl)
+      console.log(`[CACHED] ${req.originalUrl} for ${ttl}s`)
+    }
+
+    // Clear in-flight marker
+    if (req.method === 'GET') {
+      cache.clearInFlight(cacheKey)
     }
 
     res.json(response.data)
 
   } catch (err) {
-    console.error('Homepage proxy error:', err.message)
-    res.status(err.response?.status || 500).json(err.response?.data || { error: err.message })
+    // Clear in-flight marker on error
+    const cacheKey = `${req.method}:${req.originalUrl}`
+    cache.clearInFlight(cacheKey)
+
+    const statusCode = err.response?.status || 500
+    const errorMessage = err.response?.data || err.message
+
+    console.error(`[ERROR] ${req.method} ${req.originalUrl} - Status: ${statusCode}`, errorMessage)
+
+    res.status(statusCode).json({
+      error: errorMessage,
+      message: statusCode === 429 
+        ? 'Service temporarily overloaded, retrying...' 
+        : 'Failed to fetch data from homepage service'
+    })
   }
 })
 
 // Endpoint to clear cache (for admin use)
 router.post("/clear-cache", (req, res) => {
   cache.clear()
+  console.log('[ADMIN] Cache cleared')
   res.json({ message: "Cache cleared successfully" })
 })
 
