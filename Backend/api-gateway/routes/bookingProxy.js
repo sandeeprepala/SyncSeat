@@ -3,7 +3,7 @@ import axios from "axios"
 import { verifyToken } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
-const BOOKING = "https://syncseat-booking.onrender.com"
+const BOOKING = process.env.BOOKING_URL || "http://localhost:5000"
 
 // Retry logic with exponential backoff for booking operations
 async function fetchWithRetry(url, config, maxRetries = 3) {

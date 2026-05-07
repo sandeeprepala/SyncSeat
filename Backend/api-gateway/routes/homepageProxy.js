@@ -3,7 +3,7 @@ import axios from "axios"
 import { cache } from "../utils/cache.js"
 
 const router = express.Router()
-const HOMEPAGE = "https://syncseat-homepage.onrender.com"
+const HOMEPAGE = process.env.HOMEPAGE_URL || "http://localhost:3000"
 
 // Cache TTL in seconds
 const CACHE_TTL = {

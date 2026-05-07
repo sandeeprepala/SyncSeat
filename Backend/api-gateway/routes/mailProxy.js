@@ -3,7 +3,9 @@ import axios from "axios"
 import { verifyToken } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
-const MAIL = "https://syncseat-mail.onrender.com"
+// const MAIL = "https://syncseat-mail.onrender.com"
+const MAIL = "https://localhost:6000"
+
 
 // Retry logic with exponential backoff for mail operations
 async function fetchWithRetry(url, config, maxRetries = 3) {

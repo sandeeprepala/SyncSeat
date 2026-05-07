@@ -1,13 +1,7 @@
 
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../utils/api";
 import { useNavigate } from "react-router-dom";
-
-
-const API = axios.create({
-  baseURL: import.meta.env.VITE_AUTH_SERVICE,
-  withCredentials: true,
-});
 
 /* =========================
    Reveal Hook
@@ -53,7 +47,7 @@ export default function Movies() {
   const fetchMovies = async () => {
     try {
       setLoading(true);
-      const res = await API.get("/homepage/movies");
+      const res = await apiRequest('get', "/homepage/movies");
       setMovies(res.data);
     } catch (err) {
       console.error("Error fetching movies:", err.response?.data || err.message);

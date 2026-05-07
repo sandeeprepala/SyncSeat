@@ -1,5 +1,3 @@
-import 'dotenv/config'
-
 function getDefaultUrl() {
   return (
     process.env.KEEP_ALIVE_URL ||
